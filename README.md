@@ -109,3 +109,94 @@ Este sistema permite a los estudiantes registrarse y solicitar prácticas en un 
 │── templates/
 │── static/
 └── requirements.txt
+
+
+
+## 3. Detalle de la Implementación
+
+### 3.1 Modelos (`models.py`)
+- **Estudiante:**
+  ```python
+  class Estudiante(models.Model):
+      user = models.OneToOneField(User, on_delete=models.CASCADE)
+      nombre = models.CharField(max_length=255)
+      universidad = models.CharField(max_length=255)
+      correo = models.EmailField(unique=True)
+  ```
+
+- **Hospital:**
+  ```python
+  class Hospital(models.Model):
+      user = models.OneToOneField(User, on_delete=models.CASCADE)
+      nombre = models.CharField(max_length=255)
+      direccion = models.CharField(max_length=255)
+  ```
+
+- **SolicitudPráctica:**
+  ```python
+  class SolicitudPractica(models.Model):
+      estudiante = models.ForeignKey(Estudiante, on_delete=models.CASCADE)
+      hospital = models.ForeignKey(Hospital, on_delete=models.CASCADE)
+      estado = models.CharField(choices=[('pendiente', 'Pendiente'), ('aceptada', 'Aceptada'), ('rechazada', 'Rechazada')], max_length=10)
+  ```
+
+### 3.2 Rutas (`urls.py`)
+```python
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('registro/', views.registro, name='registro'),
+    path('login/', views.login_view, name='login'),
+    path('logout/', views.logout_view, name='logout'),
+    path('solicitudes/', views.lista_solicitudes, name='solicitudes'),
+    path('aprobar/<int:id>/', views.aprobar_solicitud, name='aprobar_solicitud'),
+    path('rechazar/<int:id>/', views.rechazar_solicitud, name='rechazar_solicitud'),
+]
+```
+
+### 3.3 Vistas (`views.py`)
+- **Registro de Usuarios:**
+  ```python
+  def registro(request):
+      if request.method == 'POST':
+          form = RegistroForm(request.POST)
+          if form.is_valid():
+              form.save()
+              return redirect('login')
+      else:
+          form = RegistroForm()
+      return render(request, 'registro.html', {'form': form})
+  ```
+
+- **Inicio de Sesión:**
+  ```python
+  def login_view(request):
+      if request.method == 'POST':
+          username = request.POST['username']
+          password = request.POST['password']
+          user = authenticate(request, username=username, password=password)
+          if user is not None:
+              login(request, user)
+              return redirect('solicitudes')
+      return render(request, 'login.html')
+  ```
+
+- **Lista de Solicitudes:**
+  ```python
+  def lista_solicitudes(request):
+      solicitudes = SolicitudPractica.objects.all()
+      return render(request, 'solicitudes.html', {'solicitudes': solicitudes})
+  ```
+
+### 3.4 Plantillas HTML (`templates/`)
+- **registro.html:** Formulario de registro con campos de usuario y contraseña.
+- **login.html:** Formulario de autenticación con opción de recordar sesión.
+- **solicitudes.html:** Listado de solicitudes de práctica con botones para aceptar o rechazar.
+
+## 4. Decisiones Claves
+- **Uso de MySQL** en lugar de SQLite para mejor escalabilidad.
+- **Implementación de roles personalizados** para seguridad y control.
+- **Creación de migraciones** desde el inicio para un manejo eficiente de la base de datos.
+- **Separación de módulos** en aplicaciones Django para mejorar la organización del código.
+- **Estructura clara de directorios** siguiendo las mejores prácticas de Django.
